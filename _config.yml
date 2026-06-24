@@ -1,0 +1,46 @@
+title: Guía de StoneScript en español
+description: Aprende StoneScript (Stone Story RPG) de forma fácil, con preguntas y respuestas.
+lang: es
+
+# URL del proyecto en GitHub Pages: https://holaadios-23.github.io/Stonescript-Guia/
+baseurl: "/Stonescript-Guia"
+
+# Plugins compatibles con GitHub Pages
+plugins:
+  - jekyll-relative-links
+  - jekyll-optional-front-matter
+  - jekyll-titles-from-headings
+
+# Convierte los enlaces .md (entre capítulos) a las URLs correctas del sitio
+relative_links:
+  enabled: true
+  collections: false
+
+# Permite renderizar los .md sin tener que añadirles cabecera YAML
+optional_front_matter:
+  remove_originals: true
+
+titles_from_headings:
+  enabled: true
+
+# Aplica el diseño "default" a todas las páginas
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default
+
+# ------------------------------------------------------------------
+# PUBLICIDAD (Google AdSense) — opcional y discreta.
+# Déjalo vacío y NO se muestra ningún anuncio.
+# Para activar UN solo bloque al final de cada página, pega aquí:
+#   adsense_client: "ca-pub-0000000000000000"   (tu ID de editor)
+#   adsense_slot:   "0000000000"                (ID del bloque de anuncio)
+# ------------------------------------------------------------------
+adsense_client: ""
+adsense_slot: ""
+
+exclude:
+  - test-plan.md
+  - test-report.md
+  - README.md.bak

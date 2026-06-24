@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="{{ site.lang | default: 'es' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ page.title | default: site.title }}</title>
+  <meta name="description" content="{{ page.description | default: site.description }}">
+  {% if site.adsense_client and site.adsense_client != "" %}
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ site.adsense_client }}" crossorigin="anonymous"></script>
+  {% endif %}
+  <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
+</head>
+<body>
+  <header class="site-header">
+    <a class="site-title" href="{{ '/' | relative_url }}">📖 Guía de StoneScript</a>
+    <a class="site-nav-link" href="{{ '/docs/' | relative_url }}">Índice</a>
+  </header>
+
+  <main class="content">
+    {{ content }}
+
+    {% if site.adsense_client and site.adsense_client != "" and site.adsense_slot and site.adsense_slot != "" %}
+    <aside class="ad" aria-label="Anuncio">
+      <span class="ad-label">Anuncio</span>
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="{{ site.adsense_client }}"
+           data-ad-slot="{{ site.adsense_slot }}"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </aside>
+    {% endif %}
+  </main>
+
+  <footer class="site-footer">
+    <p>Guía de StoneScript en español · hecha con ❤️</p>
+  </footer>
+</body>
+</html>
