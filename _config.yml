@@ -40,6 +40,20 @@ defaults:
 adsense_client: "ca-pub-7381295468124840"
 adsense_slot: "9251542744"
 
+# ------------------------------------------------------------------
+# APOYO / DONACIONES — botones discretos en el pie de página.
+# Pon tu usuario en la plataforma que uses (deja "" las que no uses).
+#   kofi:            -> https://ko-fi.com/USUARIO
+#   buymeacoffee:    -> https://www.buymeacoffee.com/USUARIO
+#   paypal:          -> https://paypal.me/USUARIO
+#   github_sponsors: -> https://github.com/sponsors/USUARIO
+# ------------------------------------------------------------------
+support:
+  kofi: ""
+  buymeacoffee: ""
+  paypal: ""
+  github_sponsors: ""
+
 exclude:
   - test-plan.md
   - test-report.md

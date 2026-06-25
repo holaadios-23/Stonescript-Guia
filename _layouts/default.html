@@ -34,6 +34,18 @@
   </main>
 
   <footer class="site-footer">
+    {% assign s = site.support %}
+    {% if s and s.kofi != "" or s.buymeacoffee != "" or s.paypal != "" or s.github_sponsors != "" %}
+    <div class="support">
+      <span class="support-label">¿Te sirvió la guía? Invítame algo:</span>
+      <div class="support-buttons">
+        {% if s.kofi and s.kofi != "" %}<a class="support-btn kofi" href="https://ko-fi.com/{{ s.kofi }}" target="_blank" rel="noopener">☕ Ko-fi</a>{% endif %}
+        {% if s.buymeacoffee and s.buymeacoffee != "" %}<a class="support-btn bmc" href="https://www.buymeacoffee.com/{{ s.buymeacoffee }}" target="_blank" rel="noopener">🍩 Buy Me a Coffee</a>{% endif %}
+        {% if s.paypal and s.paypal != "" %}<a class="support-btn paypal" href="https://paypal.me/{{ s.paypal }}" target="_blank" rel="noopener">💸 PayPal</a>{% endif %}
+        {% if s.github_sponsors and s.github_sponsors != "" %}<a class="support-btn ghs" href="https://github.com/sponsors/{{ s.github_sponsors }}" target="_blank" rel="noopener">❤️ Sponsors</a>{% endif %}
+      </div>
+    </div>
+    {% endif %}
     <p>Guía de StoneScript en español · hecha con ❤️</p>
   </footer>
 </body>

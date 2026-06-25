@@ -124,6 +124,39 @@ body {
   font-size: 0.9rem;
 }
 
+.support {
+  margin-bottom: 1rem;
+}
+
+.support-label {
+  display: block;
+  margin-bottom: 0.6rem;
+  color: var(--muted);
+}
+
+.support-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.support-btn {
+  display: inline-block;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  text-decoration: none;
+  color: var(--fg);
+  font-size: 0.9rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.support-btn:hover {
+  border-color: var(--accent);
+  background: var(--code-bg);
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #0d1117;
