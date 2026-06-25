@@ -38,7 +38,7 @@ defaults:
 #   adsense_slot:   "0000000000"                (ID del bloque de anuncio)
 # ------------------------------------------------------------------
 adsense_client: "ca-pub-7381295468124840"
-adsense_slot: ""
+adsense_slot: "9251542744"
 
 exclude:
   - test-plan.md
