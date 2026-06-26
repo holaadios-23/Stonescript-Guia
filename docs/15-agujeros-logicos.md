@@ -12,39 +12,213 @@ Es como darle instrucciones confusas a alguien: la persona entiende perfectament
 
 ---
 
-## Ejemplos comunes de agujeros lógicos
+## 🔑 La técnica clave: SIEMPRE cierra con `:` (else)
 
-### 1. Olvidar un `else` (`:`)
-
-Querías: *Si mi vida es baja, toma poción. Si no, ataca.*
+**Regla de oro:** Aunque sea un solo `if`, siempre cierra la cadena con `:` que imprima un mensaje de debug. Si nunca ves ese mensaje, tu lógica está correcta. Si lo ves, **encontraste el agujero**.
 
 ```
-?hp < 20
-  activate potion
-attack                  // ¡MAL! Esto ocurre SIEMPRE, incluso tomando poción
+?condition
+  do thing
+:
+  >DEBUG: condition false - LINE 3
 ```
+
+---
+
+## El agujero lógico más común: cadenas incompletas
+
+**El peor caso:**
+
+```
+?condition
+:?condition2
+  ?innerThing
+    do thing
+    // ¡AGUJERO! Si innerThing es false, ¿qué pasa?
+:?condition3
+:
+  default
+```
+
+Si `condition2` es **true** pero `innerThing` es **false**, el script **no entra al `:` final**. Tu personaje hace nada (agujero).
 
 **Correcto:**
+
+```
+?condition
+:?condition2
+  ?innerThing
+    do thing
+  :
+    >DEBUG: condition2 true but innerThing false - LINE 5
+:?condition3
+  do thing3
+:
+  >DEBUG: no condition matched - LINE 9
+  default
+```
+
+Ahora si ves "condition2 true but innerThing false", sabes exactamente dónde está el problema.
+
+---
+
+## Técnica de debugging: paso a paso
+
+### 1. Identifica todas tus cadenas `?` `:?` `:`
+
+Marca dónde empiezan y terminan:
+
+```
+?foe.distance < 10           // ← cadena 1 empieza
+  ?foe.hp < 50               // ← cadena 2 empieza (anidada)
+    attack
+  :
+    defend
+:?foe.distance < 20          // ← cadena 1 continúa
+  move closer
+:                            // ← cadena 1 termina
+  >DEBUG: too far - LINE 9
+```
+
+### 2. Asegúrate de que CADA cadena termine con `:`
+
+```
+?...
+:?...
+:?...
+:                    // ← obligatorio
+  >DEBUG: message
+```
+
+Incluso cadenas de una sola `?`:
+
+```
+?condition
+  do thing
+:                    // ← SÍ, aunque sea solo un if
+  >DEBUG: message
+```
+
+### 3. Añade debug a cada `:` final
 
 ```
 ?hp < 20
   activate potion
 :
-  attack                // Solo atacas si NO tienes vida baja
+  >DEBUG: hp >= 20 - LINE 4
 ```
 
-Sin el `:`, ambas cosas se ejecutan en el mismo frame (tomas poción Y atacas).
+### 4. Prueba en el juego
+
+Si ves mensajes de debug en lugares inesperados, encontraste el agujero.
+
+### 5. Cierra el agujero
+
+Ajusta las condiciones o añade la lógica que falta.
 
 ---
 
-### 2. Invertir una condición sin querer
+## El segundo problema: Anidación profunda
+
+Muchas condiciones anidadas = muchos agujeros potenciales.
+
+**Malo (4 niveles de anidación):**
 
 ```
-?hp > 80              // si vida es MAYOR a 80
-  activate potion     // toma poción (¡al revés!)
+?foe
+  ?foe.distance < 20
+    ?foe.hp < 50
+      ?!status.shield
+        attack
+        // ¿Qué si shield está activo?
 ```
 
-Querías tomar poción cuando tienes **poca** vida, no mucha.
+Hay 4 puntos donde podrías olvidar un `:`.
+
+**Mejor (condiciones compuestas):**
+
+```
+?foe & foe.distance < 20 & foe.hp < 50 & !status.shield
+  attack
+:
+  >DEBUG: attack condition not met - LINE 3
+```
+
+Solo **1** punto de ramificación. Mucho más seguro.
+
+**Mixto (lo ideal):**
+
+```
+?foe & foe.distance < 20
+  ?foe.hp < 50 & !status.shield
+    attack
+  :
+    >DEBUG: close but defended or healthy - LINE 5
+:
+  >DEBUG: enemy too far or not present - LINE 7
+```
+
+2 niveles máximo, debug en todos los `:`.
+
+---
+
+## Ejemplo completo: Sistema de combate
+
+**Versión con debugging (recomendada):**
+
+```
+?foe & foe.distance < 50
+  ?foe.hp < 30 & foe.distance < 15
+    attack aggressive
+  :
+    >DEBUG: close but foe healthy - LINE 5
+:?foe & foe.distance >= 50
+  move closer
+  >DEBUG: foe too far - LINE 8
+:
+  >DEBUG: no foe present - LINE 10
+  idle
+```
+
+**¿Qué pasa?**
+
+- Ves "close but foe healthy" → enemigo cerca pero vivo
+- Ves "foe too far" → hay enemigo pero está lejos
+- Ves "no foe present" → sin enemigos
+- **No ves nada** → ataque normal (lógica correcta)
+
+---
+
+## Ejemplos de agujeros comunes
+
+### 1. Olvidar el `:` final
+
+```
+?condition1
+  do thing
+?condition2           // ¡MAL! Esto corre independiente, no es parte del if
+  do thing2
+```
+
+**Correcto:**
+
+```
+?condition1
+  do thing
+:?condition2
+  do thing2
+:
+  >DEBUG: no condition - LINE 7
+```
+
+---
+
+### 2. Invertir operadores
+
+```
+?hp > 80              // vida ALTA
+  activate potion     // pero querías vida BAJA
+```
 
 **Correcto:**
 
@@ -52,39 +226,42 @@ Querías tomar poción cuando tienes **poca** vida, no mucha.
 ?hp < 20
   activate potion
 ```
-
-Siempre **verifica el operador** (`>`, `<`, `=`, etc.).
 
 ---
 
 ### 3. Confundir `&` (AND) con `|` (OR)
 
 ```
-?hp < 10 & foe.distance > 15    // si vida es baja Y enemigo lejano
+?hp < 10 & foe.distance > 15    // solo si AMBAS son true
   activate potion
 ```
 
-Esto significa: *toma poción solo si tienes poca vida* **Y** *el enemigo está lejos*. Si el enemigo está cerca pero tienes poca vida, ¡no tomas poción!
-
-Querías tomar poción si tienes poca vida, **sin importar** dónde esté el enemigo:
+Si enemigo está cerca pero tienes poca vida, ¡no funciona!
 
 **Correcto:**
 
 ```
-?hp < 10
-  activate potion
-```
-
-O si querías una condición más compleja:
-
-```
-?hp < 10 | status.poison     // si vida es baja O tienes veneno
+?hp < 10              // solo si vida baja
   activate potion
 ```
 
 ---
 
-### 4. Olvidar que el script corre 30 veces por segundo
+### 4. Variables que no se reinician
+
+```
+var hasUsedUlimate = false
+
+?key = spacebar & !hasUsedUlimate
+  activate ultimate
+  hasUsedUlimate = true   // ← OBLIGATORIO
+```
+
+Sin reiniciar, se activa 30 veces por segundo.
+
+---
+
+### 5. Counter mal estructurado
 
 ```
 var counter = 0
@@ -93,172 +270,40 @@ counter = counter + 1
   activate ability
 ```
 
-Querías: *espera 10 frames y activa*.
-
-Pero `counter` **nunca llega a 10** porque se reinicia a 0 cada vez que das la vuelta (si no lo guardas en una variable de verdad, o si hay más lógica).
+`counter` nunca llega a 10.
 
 **Correcto:**
 
 ```
-var counter = 0           // declarar fuera del script principal
+var counter = 0
 
 counter = counter + 1
 ?counter = 10
   activate ability
-  counter = 0             // reiniciar después de usar
-```
-
-O usa `time` del juego:
-
-```
-var lastAbilityTime = 0
-?time - lastAbilityTime > 300   // han pasado más de 10 segundos (300 frames)
-  activate ability
-  lastAbilityTime = time
+  counter = 0         // reiniciar
 ```
 
 ---
 
-### 5. Condiciones anidadas mal pensadas
+## Checklist: tu lógica está lista cuando...
 
-```
-?foe.distance < 10        // si enemigo está cerca
-  ?foe.hp > 100           // y enemigo tiene mucha vida
-    attack enemy          // solo ataca si AMBAS son ciertas
-:
-  move up                 // si el enemigo está lejos, mueve
-```
-
-Pero hay un **agujero**: ¿Qué pasa si el enemigo está cerca pero tiene **poca** vida? **No hace nada.**
-
-**Correcto:**
-
-```
-?foe.distance < 10        // si enemigo está cerca
-  ?foe.hp > 100
-    attack enemy
-  :
-    use strong_ability    // si enemigo está cerca pero débil, usa habilidad fuerte
-:
-  move up                 // si está lejos, mueve
-```
+- [ ] CADA cadena `?` `:?` `:?` termina con `:` con debug
+- [ ] No hay más de 2 niveles de anidación sin razón
+- [ ] Probaste el script en el juego
+- [ ] **No ves NINGÚN mensaje de debug** (eso significa que está correcto)
+- [ ] Probaste casos extremos (sin enemigos, vida 0, etc.)
+- [ ] Otro programador puede leer tu código y entender cada rama
 
 ---
 
-### 6. Variables que no se reinician
+## Resumen rápido
 
-```
-var hasUsedUlimate = false
-
-?key = spacebar & !hasUsedUlimate
-  activate ultimate
-  hasUsedUlimate = true   // marcar que ya lo usaste
-```
-
-Si **olvidas marcar** `hasUsedUlimate = true`, la habilidad se activa **30 veces por segundo** (el script corre cada frame). El personaje intenta usar ultimate constantemente.
-
----
-
-### 7. Filtros mal aplicados
-
-```
-?foe.status = poison & foe.distance < 20
-  attack foe
-```
-
-Significa: *ataca si el enemigo tiene veneno Y está a menos de 20 de distancia*.
-
-Si el enemigo NO tiene veneno, no ataca aunque esté cerca. ¿Era lo que querías?
-
-Probablemente quisiste:
-
-```
-?foe.distance < 20        // si enemigo está cerca
-  ?foe.status = poison    // y tiene veneno
-    attack foe
-  :
-    defense               // si está cerca pero sin veneno, defiéndete
-```
-
-O simplemente:
-
-```
-?foe.distance < 20
-  attack foe              // ataca si está cerca, sin importar el estado
-```
-
----
-
-### 8. Usar `=` en lugar de `==` (o no estar seguro qué operador usar)
-
-StoneScript usa **`=` para comparar** (no `==` como otros lenguajes). Si usas mal el operador:
-
-```
-?foe.hp = 50   // ¡ASIGNA! (mala idea)
-```
-
-Esto **asigna** 50 a foe.hp en lugar de comparar. Lo correcto es:
-
-```
-?foe.hp > 50   // compara si hp es mayor a 50
-```
-
----
-
-## ¿Cómo evitar agujeros lógicos?
-
-1. **Dibuja un diagrama mental** de qué debe pasar en cada caso.
-2. **Lee tu código en voz alta**: "Si esto, entonces aquello. Si no, esto otro."
-3. **Pregúntate: ¿hay casos que no cubrí?** Por ejemplo, si solo cubres "enemigo cerca" y "enemigo lejos", ¿qué pasa en la distancia exacta del límite?
-4. **Prueba casos extremos**: ¿Y si la vida es exactamente 10? ¿Y si el contador es 0? ¿Y si no hay enemigos?
-5. **Usa comentarios** para explicar tu lógica mientras escribes. Si el comentario tiene sentido pero el código no, encontraste un agujero.
-
----
-
-## Ejemplo real: Sistema de defensa mejorado
-
-**Versión con agujeros:**
-
-```
-?foe
-  ?foe.distance < 15
-    attack
-  :
-    move
-```
-
-Agujero: ¿Y si no hay enemigo? El script no hace nada.
-
-**Versión sin agujeros:**
-
-```
-?foe                      // si hay enemigo
-  ?foe.distance < 15
-    ?foe.hp < 50          // y tiene poca vida
-      attack enemy
-    :
-      attack enemy        // ambos atacan (redundante, simplifica)
-  :
-    ?foe.distance < 50    // si está lejos pero visible
-      move closer
-    :
-      move random         // si está muy lejos, muévete al azar
-:
-  idle                    // si no hay enemigo, descansa
-```
-
----
-
-## Resumen: cómo detectar agujeros
-
-| Síntoma | Probable causa |
-|---------|----------------|
-| El personaje no hace nada en algunos casos | Falta un `:` (else) o una rama |
-| Hace más cosas de las que debería cada frame | No reinicia variables o faltan condiciones |
-| El resultado es al revés | Invertiste `<` y `>` |
-| Solo reacciona en **algunos** casos aunque debería en más | Confundiste `&` (AND) con `\|` (OR) |
-| Bugs aleatorios o inconsistentes | Variable local que se reinicia sin querer |
-| El timing es incorrecto | No contaste bien los frames o `time` |
+| Problema | Solución |
+|----------|----------|
+| "¿Qué pasa en este caso?" | Añade un `:` con `>DEBUG` |
+| Condiciones anidadas profundas | Usa `&` y `|` en una línea |
+| "Mi script hace cosas raras" | Ejecuta con debug y busca dónde aparece |
+| "Algunas veces no hace nada" | Hay un agujero; cierra las cadenas con `:` |
 
 ---
 
