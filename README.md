@@ -27,5 +27,6 @@ Contenido:
 12. [Importar scripts externos](docs/12-importar-scripts.md)
 13. [Recetario de ejemplos](docs/13-recetario-ejemplos.md)
 14. [Trucos y errores comunes](docs/14-trucos-y-errores.md)
+15. [Agujeros lógicos](docs/15-agujeros-logicos.md)
 
 ## ❤️ Apoya el proyecto
