@@ -44,6 +44,7 @@ Lee los capítulos **en orden** si eres nuevo. Si ya sabes lo básico, salta al 
 | 12 | [Importar scripts externos](12-importar-scripts.md) | Dividir tu código en archivos `import` / `new` |
 | 13 | [Recetario de ejemplos](13-recetario-ejemplos.md) | Scripts completos y útiles, listos para copiar |
 | 14 | [Trucos y errores comunes](14-trucos-y-errores.md) | Consejos prácticos y cómo depurar |
+| 15 | [Agujeros lógicos](15-agujeros-logicos.md) | Errores de lógica sin sintaxis: por qué tu código funciona pero no hace lo que quieres |
 
 ---
 
