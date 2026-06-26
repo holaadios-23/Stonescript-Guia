@@ -29,5 +29,3 @@ Contenido:
 14. [Trucos y errores comunes](docs/14-trucos-y-errores.md)
 
 ## ❤️ Apoya el proyecto
-
-¿Te resultó útil la guía?
