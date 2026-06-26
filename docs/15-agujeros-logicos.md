@@ -30,32 +30,32 @@ Es como darle instrucciones confusas a alguien: la persona entiende perfectament
 **El peor caso:**
 
 ```
-?distancia.enemigo < 15
-:?distancia.enemigo < 20
-  ?vidaEnemigo < 50
-    atacar
-    // ¡AGUJERO! Si vidaEnemigo >= 50, ¿qué pasa?
-:?distancia.enemigo < 50
+?foe & foe.distance < 15
+:?foe & foe.distance < 20
+  ?foe.hp < 50
+    activate potion
+    // ¡AGUJERO! Si foe.hp >= 50, ¿qué pasa?
+:?foe & foe.distance < 50
 :
   acción por defecto
 ```
 
-Si `distancia.enemigo` está entre 15 y 20, pero `vidaEnemigo >= 50`, el script **no entra al `:` final**. Tu personaje hace nada (agujero).
+Si `foe.distance` está entre 15 y 20, pero `foe.hp >= 50`, el script **no entra al `:` final**. Tu personaje hace nada (agujero).
 
 **Correcto:**
 
 ```
-?distancia.enemigo < 15
-:?distancia.enemigo < 20
-  ?vidaEnemigo < 50
-    atacar
+?foe & foe.distance < 15
+:?foe & foe.distance < 20
+  ?foe.hp < 50
+    activate potion
   :
     >DEPURACIÓN: enemigo a 15-20 pero sano - LÍNEA 5
-:?distancia.enemigo < 50
-  acercarse
+:?foe & foe.distance < 50
+  equipR bash
 :
-  >DEPURACIÓN: enemigo muy lejos - LÍNEA 9
-  movimiento aleatorio
+  >DEPURACIÓN: sin enemigo o muy lejos - LÍNEA 9
+  loadout 1
 ```
 
 Ahora si ves "enemigo a 15-20 pero sano", sabes exactamente dónde está el problema.
@@ -69,15 +69,15 @@ Ahora si ves "enemigo a 15-20 pero sano", sabes exactamente dónde está el prob
 Marca dónde empiezan y terminan:
 
 ```
-?foe.distance < 10        // ← cadena 1 empieza
-  ?foe.hp < 50            // ← cadena 2 empieza (anidada)
+?foe & foe.distance < 10        // ← cadena 1 empieza
+  ?foe.hp < 50                  // ← cadena 2 empieza (anidada)
     activate potion
   :
     defend
-:?foe.distance < 20       // ← cadena 1 continúa
-  move closer
-:                         // ← cadena 1 termina
-  >DEPURACIÓN: enemigo muy lejos - LÍNEA 9
+:?foe & foe.distance < 20       // ← cadena 1 continúa
+  equipR bash
+:                               // ← cadena 1 termina
+  >DEPURACIÓN: sin enemigo o muy lejos - LÍNEA 9
 ```
 
 ### 2. Asegúrate de que CADA cadena termine con `:`
@@ -128,9 +128,9 @@ Muchas condiciones anidadas = muchos agujeros potenciales.
 ?foe
   ?foe.distance < 20
     ?foe.hp < 50
-      ?buffs.count = 0
+      ?foe.buffs.count = 0
         activate potion
-        // ¿Qué si buffs.count > 0?
+        // ¿Qué si foe.buffs.count > 0?
 ```
 
 Hay 4 puntos donde podrías olvidar un `:`.
@@ -138,7 +138,7 @@ Hay 4 puntos donde podrías olvidar un `:`.
 **Mejor (condiciones compuestas):**
 
 ```
-?foe & foe.distance < 20 & foe.hp < 50 & buffs.count = 0
+?foe & foe.distance < 20 & foe.hp < 50 & foe.buffs.count = 0
   activate potion
 :
   >DEPURACIÓN: condición de poción no se cumplió - LÍNEA 3
@@ -150,7 +150,7 @@ Solo **1** punto de ramificación. Mucho más seguro.
 
 ```
 ?foe & foe.distance < 20
-  ?foe.hp < 50 & buffs.count = 0
+  ?foe.hp < 50 & foe.buffs.count = 0
     activate potion
   :
     >DEPURACIÓN: cerca pero sano o con buffs - LÍNEA 5
@@ -162,30 +162,36 @@ Solo **1** punto de ramificación. Mucho más seguro.
 
 ---
 
-## Ejemplo completo: Sistema de combate (REAL)
+## Ejemplo completo: Sistema de habilidades con cooldown (REAL)
 
 **Versión con depuración (recomendada):**
 
 ```
-?foe & foe.distance < 50
-  ?foe.hp < 30 & foe.distance < 15
-    activate potion
-  :
-    >DEPURACIÓN: cerca pero enemigo sano - LÍNEA 5
-:?foe & foe.distance >= 50
-  move closer
-  >DEPURACIÓN: enemigo muy lejos - LÍNEA 8
+var igc = item.GetCooldown
+
+?igc("bash") = 0
+  equipR bash
+  activate R
+  >DEPURACIÓN: bash activado - LÍNEA 4
+:?igc("dash") = 0
+  equipR dash
+  activate R
+  >DEPURACIÓN: dash activado - LÍNEA 8
+:?igc("potion") = 0
+  activate potion
+  >DEPURACIÓN: potion activado - LÍNEA 11
 :
-  >DEPURACIÓN: sin enemigo - LÍNEA 10
-  idle
+  >DEPURACIÓN: todas las habilidades en cooldown - LÍNEA 13
+  equipR shield
 ```
 
 **¿Qué pasa?**
 
-- Ves "cerca pero enemigo sano" → Hay enemigo cerca pero con buena vida
-- Ves "enemigo muy lejos" → Hay enemigo pero está lejano
-- Ves "sin enemigo" → No hay enemigos
-- **No ves nada** → Lógica correcta, ataque normal
+- Ves "bash activado" → bash está listo (cooldown = 0)
+- Ves "dash activado" → bash está en cooldown, pero dash está listo
+- Ves "potion activado" → bash y dash en cooldown, potion listo
+- Ves "todas las habilidades en cooldown" → Nada disponible
+- **No ves nada** → Lógica funcionando correctamente
 
 ---
 
@@ -278,7 +284,66 @@ O:
 
 ---
 
-### 5. Variables que no se reinician
+### 5. Olvidar que el cooldown devuelve números
+
+```
+var igc = item.GetCooldown
+
+?igc("bash")          // ¡AGUJERO! Esto siempre es true si > 0
+  equipR bash
+```
+
+`item.GetCooldown()` devuelve un **número** (frames restantes). Si es > 0, el cooldown aún activo. Si es 0, está listo.
+
+**Correcto:**
+
+```
+var igc = item.GetCooldown
+
+?igc("bash") = 0      // = 0 significa que está LISTO
+  equipR bash
+  activate R
+:
+  >DEPURACIÓN: bash en cooldown - LÍNEA 7
+```
+
+---
+
+### 6. Cadenas mal cerradas con cooldowns
+
+**El peor caso:**
+
+```
+var igc = item.GetCooldown
+
+?igc("bash") = 0
+  equipR bash
+:?igc("dash") = 0
+  equipR dash
+  // ¡AGUJERO! Si ambos en cooldown, ¿qué?
+```
+
+**Correcto:**
+
+```
+var igc = item.GetCooldown
+
+?igc("bash") = 0
+  equipR bash
+  activate R
+  >DEPURACIÓN: bash listo - LÍNEA 6
+:?igc("dash") = 0
+  equipR dash
+  activate R
+  >DEPURACIÓN: dash listo - LÍNEA 10
+:
+  >DEPURACIÓN: ambos en cooldown - LÍNEA 12
+  equipR shield
+```
+
+---
+
+### 7. Variables que no se reinician
 
 ```
 var hasUsedAbility = false
@@ -292,42 +357,6 @@ Sin reiniciar, se activa 30 veces por segundo.
 
 ---
 
-### 6. Cadenas mal cerradas con condiciones reales
-
-**El peor caso del juego:**
-
-```
-?loc = caves
-:?loc = deadwood
-  ?foe = bolesh
-    equipR hammer
-  // ¡AGUJERO! deadwood, no es bolesh, ¿qué?
-:?loc = halls
-:
-  loadout 1
-```
-
-**Correcto:**
-
-```
-?loc = caves
-  loadout 1
-  >DEPURACIÓN: en cuevas - LÍNEA 3
-:?loc = deadwood
-  ?foe = bolesh
-    equipR hammer
-  :
-    >DEPURACIÓN: deadwood pero no bolesh - LÍNEA 8
-:?loc = halls
-  equipL poison wand
-  >DEPURACIÓN: en halls - LÍNEA 11
-:
-  >DEPURACIÓN: otra ubicación - LÍNEA 13
-  loadout 1
-```
-
----
-
 ## Checklist: tu lógica está lista cuando...
 
 - [ ] CADA cadena `?` `:?` `:?` termina con `:`
@@ -335,7 +364,7 @@ Sin reiniciar, se activa 30 veces por segundo.
 - [ ] No hay más de 2 niveles de anidación sin razón
 - [ ] Probaste el script en el juego
 - [ ] **No ves NINGÚN mensaje de depuración** (eso = lógica correcta)
-- [ ] Probaste casos extremos (sin enemigos, vida 1, etc.)
+- [ ] Probaste casos extremos (todos los cooldowns activos, sin enemigos, etc.)
 - [ ] Otro jugador puede leer tu código y entender cada rama
 
 ---
@@ -348,6 +377,7 @@ Sin reiniciar, se activa 30 veces por segundo.
 | Condiciones anidadas profundas | Usa `&` y `\|` en una línea |
 | "Mi script hace cosas raras" | Ejecuta con depuración y busca dónde aparece |
 | "Algunas veces no hace nada" | Hay un agujero; cierra todas las cadenas con `:` |
+| "El cooldown nunca funciona" | Recuerda: `igc() = 0` es listo, `igc() > 0` es en cooldown |
 
 ---
 
