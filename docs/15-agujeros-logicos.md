@@ -12,15 +12,15 @@ Es como darle instrucciones confusas a alguien: la persona entiende perfectament
 
 ---
 
-## 🔑 La técnica clave: SIEMPRE cierra con `:` (else)
+## 🔑 La técnica clave: SIEMPRE cierra con `:` (sino)
 
-**Regla de oro:** Aunque sea un solo `if`, siempre cierra la cadena con `:` que imprima un mensaje de debug. Si nunca ves ese mensaje, tu lógica está correcta. Si lo ves, **encontraste el agujero**.
+**Regla de oro:** Aunque sea un solo `?`, siempre cierra la cadena con `:` (sino) **que imprima un mensaje de depuración**. Si nunca ves ese mensaje, tu lógica está correcta. Si lo ves, **encontraste el agujero**.
 
 ```
-?condition
-  do thing
+?condición
+  hacer algo
 :
-  >DEBUG: condition false - LINE 3
+  >DEPURACIÓN: condición falsa - LÍNEA 3
 ```
 
 ---
@@ -30,54 +30,54 @@ Es como darle instrucciones confusas a alguien: la persona entiende perfectament
 **El peor caso:**
 
 ```
-?condition
-:?condition2
-  ?innerThing
-    do thing
-    // ¡AGUJERO! Si innerThing es false, ¿qué pasa?
-:?condition3
+?distancia.enemigo < 15
+:?distancia.enemigo < 20
+  ?vidaEnemigo < 50
+    atacar
+    // ¡AGUJERO! Si vidaEnemigo >= 50, ¿qué pasa?
+:?distancia.enemigo < 50
 :
-  default
+  acción por defecto
 ```
 
-Si `condition2` es **true** pero `innerThing` es **false**, el script **no entra al `:` final**. Tu personaje hace nada (agujero).
+Si `distancia.enemigo` está entre 15 y 20, pero `vidaEnemigo >= 50`, el script **no entra al `:` final**. Tu personaje hace nada (agujero).
 
 **Correcto:**
 
 ```
-?condition
-:?condition2
-  ?innerThing
-    do thing
+?distancia.enemigo < 15
+:?distancia.enemigo < 20
+  ?vidaEnemigo < 50
+    atacar
   :
-    >DEBUG: condition2 true but innerThing false - LINE 5
-:?condition3
-  do thing3
+    >DEPURACIÓN: enemigo a 15-20 pero sano - LÍNEA 5
+:?distancia.enemigo < 50
+  acercarse
 :
-  >DEBUG: no condition matched - LINE 9
-  default
+  >DEPURACIÓN: enemigo muy lejos - LÍNEA 9
+  movimiento aleatorio
 ```
 
-Ahora si ves "condition2 true but innerThing false", sabes exactamente dónde está el problema.
+Ahora si ves "enemigo a 15-20 pero sano", sabes exactamente dónde está el problema.
 
 ---
 
-## Técnica de debugging: paso a paso
+## Técnica de depuración: paso a paso
 
 ### 1. Identifica todas tus cadenas `?` `:?` `:`
 
 Marca dónde empiezan y terminan:
 
 ```
-?foe.distance < 10           // ← cadena 1 empieza
-  ?foe.hp < 50               // ← cadena 2 empieza (anidada)
-    attack
+?foe.distance < 10        // ← cadena 1 empieza
+  ?foe.hp < 50            // ← cadena 2 empieza (anidada)
+    activate potion
   :
     defend
-:?foe.distance < 20          // ← cadena 1 continúa
+:?foe.distance < 20       // ← cadena 1 continúa
   move closer
-:                            // ← cadena 1 termina
-  >DEBUG: too far - LINE 9
+:                         // ← cadena 1 termina
+  >DEPURACIÓN: enemigo muy lejos - LÍNEA 9
 ```
 
 ### 2. Asegúrate de que CADA cadena termine con `:`
@@ -87,30 +87,30 @@ Marca dónde empiezan y terminan:
 :?...
 :?...
 :                    // ← obligatorio
-  >DEBUG: message
+  >DEPURACIÓN: mensaje
 ```
 
 Incluso cadenas de una sola `?`:
 
 ```
-?condition
-  do thing
+?condición
+  hacer algo
 :                    // ← SÍ, aunque sea solo un if
-  >DEBUG: message
+  >DEPURACIÓN: mensaje
 ```
 
-### 3. Añade debug a cada `:` final
+### 3. Añade depuración a cada `:` final
 
 ```
 ?hp < 20
   activate potion
 :
-  >DEBUG: hp >= 20 - LINE 4
+  >DEPURACIÓN: vida >= 20 - LÍNEA 4
 ```
 
 ### 4. Prueba en el juego
 
-Si ves mensajes de debug en lugares inesperados, encontraste el agujero.
+Si ves mensajes de depuración en lugares inesperados, encontraste el agujero.
 
 ### 5. Cierra el agujero
 
@@ -128,9 +128,9 @@ Muchas condiciones anidadas = muchos agujeros potenciales.
 ?foe
   ?foe.distance < 20
     ?foe.hp < 50
-      ?!status.shield
-        attack
-        // ¿Qué si shield está activo?
+      ?buffs.count = 0
+        activate potion
+        // ¿Qué si buffs.count > 0?
 ```
 
 Hay 4 puntos donde podrías olvidar un `:`.
@@ -138,10 +138,10 @@ Hay 4 puntos donde podrías olvidar un `:`.
 **Mejor (condiciones compuestas):**
 
 ```
-?foe & foe.distance < 20 & foe.hp < 50 & !status.shield
-  attack
+?foe & foe.distance < 20 & foe.hp < 50 & buffs.count = 0
+  activate potion
 :
-  >DEBUG: attack condition not met - LINE 3
+  >DEPURACIÓN: condición de poción no se cumplió - LÍNEA 3
 ```
 
 Solo **1** punto de ramificación. Mucho más seguro.
@@ -150,65 +150,66 @@ Solo **1** punto de ramificación. Mucho más seguro.
 
 ```
 ?foe & foe.distance < 20
-  ?foe.hp < 50 & !status.shield
-    attack
+  ?foe.hp < 50 & buffs.count = 0
+    activate potion
   :
-    >DEBUG: close but defended or healthy - LINE 5
+    >DEPURACIÓN: cerca pero sano o con buffs - LÍNEA 5
 :
-  >DEBUG: enemy too far or not present - LINE 7
+  >DEPURACIÓN: sin enemigo o muy lejos - LÍNEA 7
 ```
 
-2 niveles máximo, debug en todos los `:`.
+2 niveles máximo, depuración en todos los `:`.
 
 ---
 
-## Ejemplo completo: Sistema de combate
+## Ejemplo completo: Sistema de combate (REAL)
 
-**Versión con debugging (recomendada):**
+**Versión con depuración (recomendada):**
 
 ```
 ?foe & foe.distance < 50
   ?foe.hp < 30 & foe.distance < 15
-    attack aggressive
+    activate potion
   :
-    >DEBUG: close but foe healthy - LINE 5
+    >DEPURACIÓN: cerca pero enemigo sano - LÍNEA 5
 :?foe & foe.distance >= 50
   move closer
-  >DEBUG: foe too far - LINE 8
+  >DEPURACIÓN: enemigo muy lejos - LÍNEA 8
 :
-  >DEBUG: no foe present - LINE 10
+  >DEPURACIÓN: sin enemigo - LÍNEA 10
   idle
 ```
 
 **¿Qué pasa?**
 
-- Ves "close but foe healthy" → enemigo cerca pero vivo
-- Ves "foe too far" → hay enemigo pero está lejos
-- Ves "no foe present" → sin enemigos
-- **No ves nada** → ataque normal (lógica correcta)
+- Ves "cerca pero enemigo sano" → Hay enemigo cerca pero con buena vida
+- Ves "enemigo muy lejos" → Hay enemigo pero está lejano
+- Ves "sin enemigo" → No hay enemigos
+- **No ves nada** → Lógica correcta, ataque normal
 
 ---
 
-## Ejemplos de agujeros comunes
+## Ejemplos de agujeros comunes (REALES)
 
 ### 1. Olvidar el `:` final
 
 ```
-?condition1
-  do thing
-?condition2           // ¡MAL! Esto corre independiente, no es parte del if
-  do thing2
+?loc = caves
+  loadout 1
+?loc = deadwood        // ¡MAL! Esto corre independiente
+  loadout 2
 ```
 
 **Correcto:**
 
 ```
-?condition1
-  do thing
-:?condition2
-  do thing2
+?loc = caves
+  loadout 1
+:?loc = deadwood
+  loadout 2
 :
-  >DEBUG: no condition - LINE 7
+  >DEPURACIÓN: otra ubicación - LÍNEA 6
+  loadout 3
 ```
 
 ---
@@ -229,7 +230,7 @@ Solo **1** punto de ramificación. Mucho más seguro.
 
 ---
 
-### 3. Confundir `&` (AND) con `|` (OR)
+### 3. Confundir `&` (Y) con `|` (O)
 
 ```
 ?hp < 10 & foe.distance > 15    // solo si AMBAS son true
@@ -245,54 +246,97 @@ Si enemigo está cerca pero tienes poca vida, ¡no funciona!
   activate potion
 ```
 
----
-
-### 4. Variables que no se reinician
+O si querías verificar ambas (aunque sea raro):
 
 ```
-var hasUsedUlimate = false
+?hp < 10 | foe.distance > 50    // si vida baja O enemigo muy lejos
+  activate potion
+```
 
-?key = spacebar & !hasUsedUlimate
-  activate ultimate
-  hasUsedUlimate = true   // ← OBLIGATORIO
+---
+
+### 4. Confundir `!` (NO)
+
+```
+?foe.armor = 0        // armor exactamente 0
+```
+
+**Si querías "sin armadura":**
+
+```
+?foe.armor ! 0        // armor NO es 0
+```
+
+O:
+
+```
+?!foe               // NO hay enemigo
+  loadout 1
+:
+  loadout 2
+```
+
+---
+
+### 5. Variables que no se reinician
+
+```
+var hasUsedAbility = false
+
+?item.CanActivate()
+  activate R
+  hasUsedAbility = true   // ← OBLIGATORIO
 ```
 
 Sin reiniciar, se activa 30 veces por segundo.
 
 ---
 
-### 5. Counter mal estructurado
+### 6. Cadenas mal cerradas con condiciones reales
+
+**El peor caso del juego:**
 
 ```
-var counter = 0
-counter = counter + 1
-?counter = 10
-  activate ability
+?loc = caves
+:?loc = deadwood
+  ?foe = bolesh
+    equipR hammer
+  // ¡AGUJERO! deadwood, no es bolesh, ¿qué?
+:?loc = halls
+:
+  loadout 1
 ```
-
-`counter` nunca llega a 10.
 
 **Correcto:**
 
 ```
-var counter = 0
-
-counter = counter + 1
-?counter = 10
-  activate ability
-  counter = 0         // reiniciar
+?loc = caves
+  loadout 1
+  >DEPURACIÓN: en cuevas - LÍNEA 3
+:?loc = deadwood
+  ?foe = bolesh
+    equipR hammer
+  :
+    >DEPURACIÓN: deadwood pero no bolesh - LÍNEA 8
+:?loc = halls
+  equipL poison wand
+  >DEPURACIÓN: en halls - LÍNEA 11
+:
+  >DEPURACIÓN: otra ubicación - LÍNEA 13
+  loadout 1
 ```
 
 ---
 
 ## Checklist: tu lógica está lista cuando...
 
-- [ ] CADA cadena `?` `:?` `:?` termina con `:` con debug
+- [ ] CADA cadena `?` `:?` `:?` termina con `:`
+- [ ] CADA `:` final tiene un mensaje de depuración
 - [ ] No hay más de 2 niveles de anidación sin razón
 - [ ] Probaste el script en el juego
-- [ ] **No ves NINGÚN mensaje de debug** (eso significa que está correcto)
-- [ ] Probaste casos extremos (sin enemigos, vida 0, etc.)
-- [ ] Otro programador puede leer tu código y entender cada rama
+- [ ] **No ves NINGÚN mensaje de depuración** (eso = lógica correcta)
+- [ ] Probaste casos extremos (sin enemigos, vida 1, etc.)
+- [ ] Otro jugador puede leer tu código y entender cada rama
 
 ---
 
@@ -300,10 +344,10 @@ counter = counter + 1
 
 | Problema | Solución |
 |----------|----------|
-| "¿Qué pasa en este caso?" | Añade un `:` con `>DEBUG` |
-| Condiciones anidadas profundas | Usa `&` y `|` en una línea |
-| "Mi script hace cosas raras" | Ejecuta con debug y busca dónde aparece |
-| "Algunas veces no hace nada" | Hay un agujero; cierra las cadenas con `:` |
+| "¿Qué pasa en este caso?" | Añade un `:` con `>DEPURACIÓN` |
+| Condiciones anidadas profundas | Usa `&` y `\|` en una línea |
+| "Mi script hace cosas raras" | Ejecuta con depuración y busca dónde aparece |
+| "Algunas veces no hace nada" | Hay un agujero; cierra todas las cadenas con `:` |
 
 ---
 
