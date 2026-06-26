@@ -30,4 +30,4 @@ Contenido:
 
 ## ❤️ Apoya el proyecto
 
-¿Te resultó útil la guía? (Sección de apoyo/monetización pendiente de configurar.)
+¿Te resultó útil la guía?
